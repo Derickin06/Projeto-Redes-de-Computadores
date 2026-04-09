@@ -1,46 +1,89 @@
 import socket
+import threading
 
-# Configurações para conectar ao seu servidor
-TCP_IP = '127.0.0.1' 
-TCP_PORTA = 10352      
-TAMANHO_BUFFER = 1024
 
-# 1. Criação do socket
-cliente = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+PORT = 10352
+IP_CLIENTE = "177.197.98.100"
 
-try:
-    # 2. Conecta ao servidor APENAS UMA VEZ antes do loop 
-    cliente.connect((TCP_IP, TCP_PORTA))
-    print(f"[*] Conectado com sucesso ao servidor {TCP_IP}:{TCP_PORTA}")
 
+def chat_servidor_p2p():
+    """Servidor para chat P2P - Cliente 1"""
+    servidor = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    servidor.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    servidor.bind(('localhost', PORT))
+    servidor.listen(1)
+
+    print("[SERVIDOR] Aguardando conexão...")
+    conexao, endereco = servidor.accept()
+    print(f"[CONECTADO] Cliente: {endereco}")
+
+    # Thread para receber mensagens
+    def receber():
+        while True:
+            try:
+                msg = conexao.recv(1024).decode('UTF-8')
+                if msg:
+                    print(f"\n{msg}")
+                    print("Server: ", end='', flush=True)
+            except:
+                break
+
+    thread_receber = threading.Thread(target=receber)
+    thread_receber.daemon = True
+    thread_receber.start()
+
+    # Enviar mensagens
     while True:
-        # 3. Solicita a mensagem dentro do loop para enviar várias vezes [cite: 17]
-        mensagem = input("\nDigite o comando (ou /quit para sair): ")
-
-        if not mensagem:
-            continue
-
-        # 4. Envia a mensagem para o servidor
-        cliente.send(mensagem.encode('UTF-8'))
-
-        # Condição de saída baseada no protocolo do seu servidor [cite: 17]
-        if mensagem.lower() == '/quit':
+        try:
+            msg = input("Você: ")
+            if msg:
+                conexao.send(msg.encode('UTF-8'))
+        except KeyboardInterrupt:
+            print("\n[ENCERRANDO...]")
+            conexao.close()
             break
 
-        # 5. Recebe a resposta do servidor [cite: 11]
-        data = cliente.recv(TAMANHO_BUFFER)
-        
-        if not data:
-            print("[!] Conexão perdida com o servidor.")
-            break
 
-        print(f"[RESPOSTA]: {data.decode('UTF-8')}")
+def chat_cliente_p2p():
+    """Cliente para chat P2P - Cliente 2"""
+    cliente = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-except ConnectionRefusedError:
-    print("[ERRO] Não foi possível conectar. O servidor está rodando?") [cite: 13]
-except Exception as e:
-    print(f"[ERRO] Ocorreu uma falha: {e}")
-finally:
-    # 6. Fecha a conexão de forma limpa ao sair
-    cliente.close()
-    print("[*] Conexão encerrada.")
+    try:
+        cliente.connect(("localhost", PORT))
+        print("[CONECTADO] Conectado ao servidor")
+
+        # Thread para receber mensagens
+        def receber():
+            while True:
+                try:
+                    msg = cliente.recv(1024).decode('UTF-8')
+                    if msg:
+                        print(f"\n{msg}")
+                        print("Cliente: ", end='', flush=True)
+                except:
+                    break
+
+        thread_receber = threading.Thread(target=receber)
+        thread_receber.daemon = True
+        thread_receber.start()
+
+        # Enviar mensagens
+        while True:
+            try:
+                msg = input("Você: ")
+                if msg:
+                    cliente.send(msg.encode('UTF-8'))
+            except KeyboardInterrupt:
+                print("\n[ENCERRANDO...]")
+                cliente.close()
+                break
+
+    except ConnectionRefusedError:
+        print("[ERRO] Não consegui conectar ao servidor")
+
+# ========== PARA USAR ==========
+# Execute em dois terminais:
+# Terminal 1: python -c "from ex2 import chat_servidor_p2p; chat_servidor_p2p()"
+# Terminal 2: python -c "from ex2 import chat_cliente_p2p; chat_cliente_p2p()"
+#
+# OU use os arquivos chat_server.py e chat_client.py para múltiplos clientes
