@@ -1,26 +1,15 @@
-import socket #importa modulo socket
+import socket  #importa modulo socket
+  
+IP_destino = "192.168.0.3"  #Endereço IP do servidor
+PORTA_destino = 5005          #Numero de porta do servidor
+MENSAGEM = "Hello, World!"
  
-TCP_IP = '192.168.0.3' # endereço IP do servidor 
-TCP_PORTA = 24000       # porta disponibilizada pelo servidor
-TAMANHO_BUFFER = 1024     # definição do tamanho do buffer
+print ("Endereço IP de destino:", IP_destino)
+print ("Porta UDP de destino:", PORTA_destino)
+print ("Mensagem enviada:", MENSAGEM)
  
-# Criação de socket TCP
-# SOCK_STREAM, indica que será TCP.
-servidor = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+#Criação de socket UDP
+sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
 
-# IP e porta que o servidor deve aguardar a conexão
-servidor.bind((TCP_IP, TCP_PORTA))
-
-#Define o limite de conexões. 
-servidor.listen(1)
-
-print("Servidor dispoivel na porta 5005 e escutando.....") 
-# Aceita conexão 
-conn, addr = servidor.accept()
-print ('Endereço conectado:', addr)
-while 1:
-    #dados retidados da mensagem recebida
-    data = conn.recv(TAMANHO_BUFFER)
-    if data: 
-        print ("Mensagem recebida:", data)  
-        conn.send(data.upper())  # envia dados recebidos em letra maiuscula 
+#Envia mensagem usando socket UDP
+sock.sendto(MENSAGEM.encode('UTF-8'), (IP_destino, PORTA_destino))
